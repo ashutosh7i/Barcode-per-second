@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dynamic Barcode Generator</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin-top: 50px;
+    }
+    svg {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Random Barcode Generator</h1>
+  <p>New barcode every second</p>
+  <svg id="barcode"></svg>
+  <p id="value-display"></p>
+
+  <script>
+    function generateRandomBarcode() {
+      const value = Math.floor(Math.random() * (20000 - 10000 + 1)) + 10000;
+      JsBarcode("#barcode", value.toString(), {
+        format: "CODE128",
+        lineColor: "#000",
+        width: 2,
+        height: 100,
+        displayValue: true
+      });
+      document.getElementById("value-display").textContent = "Value: " + value;
+    }
+
+    // Generate immediately and every 1 second
+    generateRandomBarcode();
+    setInterval(generateRandomBarcode, 1000);
+  </script>
+</body>
+</html>
