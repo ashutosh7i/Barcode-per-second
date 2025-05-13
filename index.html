@@ -1,42 +1,171 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <title>Dynamic Barcode Generator</title>
-  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      margin-top: 50px;
-    }
-    svg {
-      margin-top: 20px;
-    }
-  </style>
-</head>
-<body>
-  <h1>Random Barcode Generator</h1>
-  <p>New barcode every second</p>
-  <svg id="barcode"></svg>
-  <p id="value-display"></p>
+  <meta charset="UTF-8" />
+  <title>Barcode-per-second</title>
 
+  <!-- TailwindCSS + DaisyUI -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    function generateRandomBarcode() {
-      const value = Math.floor(Math.random() * (20000 - 10000 + 1)) + 10000;
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            iron: {
+              bg: '#121212',
+              accent: '#ff3c00',
+              base: '#1e1e1e',
+              glow: '#ff6a36',
+            },
+          },
+        },
+      },
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.4/dist/full.css" rel="stylesheet" type="text/css" />
+</head>
+<body class="bg-iron-bg text-white min-h-screen flex flex-col justify-between">
+
+  <!-- Header -->
+  <header class="text-center py-6 bg-iron-base shadow-md">
+    <h1 class="text-3xl font-bold text-iron-accent">Barcode-per-second</h1>
+  </header>
+
+  <!-- Main Section -->
+  <main class="flex flex-col items-center py-8 gap-6 px-4">
+    <!-- Smaller Control Panel -->
+    <div class="card w-full max-w-sm bg-iron-base shadow-xl p-4">
+      <div class="form-control mb-3">
+        <label class="label">
+          <span class="label-text text-white">Digit Length</span>
+        </label>
+        <input type="number" id="digitLength" value="5" min="1" max="10" class="input input-bordered bg-iron-bg text-white" />
+      </div>
+
+      <div class="form-control mb-3">
+        <label class="cursor-pointer label">
+          <span class="label-text text-white">Sequential Mode</span>
+          <input type="checkbox" id="sequentialToggle" class="checkbox checkbox-accent" />
+        </label>
+      </div>
+
+      <div class="form-control mb-3">
+        <label class="label">
+          <span class="label-text text-white">Speed (ms)</span>
+        </label>
+        <input type="range" id="speedSlider" min="200" max="2000" step="100" value="1000" class="range range-accent" />
+        <span id="speedDisplay" class="text-sm mt-1 text-center">Interval: 1000 ms</span>
+      </div>
+
+      <button id="toggleBtn" onclick="toggleGenerator()" class="btn btn-accent w-full mt-2 hover:brightness-125 transition">
+        Start
+      </button>
+    </div>
+
+    <!-- Larger Barcode -->
+    <svg id="barcode" class="mt-4 w-[600px] h-[250px] bg-white rounded shadow-md p-3"></svg>
+    <p id="value-display" class="mt-2 text-lg text-iron-glow"></p>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-iron-base text-center p-4 text-white">
+    Made with ❤️ by <a href="https://ashutosh7i.dev" target="_blank" class="text-iron-glow underline">Ashutosh7i</a>
+  </footer>
+
+  <!-- Floating Info Button -->
+  <button onclick="infoModal.showModal()" class="btn btn-circle btn-accent fixed bottom-20 right-4 text-xl shadow-lg">
+    i
+  </button>
+
+  <!-- Modal -->
+  <dialog id="infoModal" class="modal">
+    <div class="modal-box bg-iron-base text-white">
+      <h3 class="font-bold text-lg mb-2">How to Use</h3>
+      <ol class="list-decimal list-inside text-sm space-y-1">
+        <li>Select digit length.</li>
+        <li>Enable sequential mode if needed.</li>
+        <li>Adjust generation speed.</li>
+        <li>Click "Start" to begin, click again to stop.</li>
+      </ol>
+      <div class="modal-action">
+        <form method="dialog">
+          <button class="btn btn-sm btn-accent">Close</button>
+        </form>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- JavaScript -->
+  <script>
+    let intervalId = null;
+    let currentValue = 0;
+
+    const digitInput = document.getElementById("digitLength");
+    const speedSlider = document.getElementById("speedSlider");
+    const speedDisplay = document.getElementById("speedDisplay");
+    const toggleBtn = document.getElementById("toggleBtn");
+
+    function getMinMaxFromDigits(digits) {
+      const min = Math.pow(10, digits - 1);
+      const max = Math.pow(10, digits) - 1;
+      return [min, max];
+    }
+
+    function getRandomNumber(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function updateBarcode(value) {
       JsBarcode("#barcode", value.toString(), {
         format: "CODE128",
         lineColor: "#000",
-        width: 2,
-        height: 100,
+        width: 3,
+        height: 120,
+        fontSize: 20,
         displayValue: true
       });
       document.getElementById("value-display").textContent = "Value: " + value;
     }
 
-    // Generate immediately and every 1 second
-    generateRandomBarcode();
-    setInterval(generateRandomBarcode, 1000);
+    function startGenerator() {
+      const digits = parseInt(digitInput.value);
+      const sequential = document.getElementById("sequentialToggle").checked;
+      const speed = parseInt(speedSlider.value);
+      const [min, max] = getMinMaxFromDigits(digits);
+
+      if (sequential) currentValue = min;
+
+      intervalId = setInterval(() => {
+        let value = sequential ? currentValue++ : getRandomNumber(min, max);
+        if (currentValue > max) currentValue = min;
+        updateBarcode(value);
+      }, speed);
+    }
+
+    function stopGenerator() {
+      clearInterval(intervalId);
+      intervalId = null;
+    }
+
+    function toggleGenerator() {
+      if (intervalId) {
+        stopGenerator();
+        toggleBtn.textContent = "Start";
+      } else {
+        startGenerator();
+        toggleBtn.textContent = "Stop";
+      }
+    }
+
+    speedSlider.addEventListener("input", () => {
+      speedDisplay.textContent = `Interval: ${speedSlider.value} ms`;
+      if (intervalId) {
+        toggleGenerator();
+        toggleGenerator();
+      }
+    });
   </script>
 </body>
 </html>
